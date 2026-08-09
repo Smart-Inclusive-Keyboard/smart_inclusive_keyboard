@@ -1,5 +1,8 @@
 # Name,     Type, SubType, Offset,  Size,    Flags
+# The Freenove FNK0104A carries a 128-Mbit (16 MB) 25VQ128 flash chip,
+# so partitions below are sized generously to leave headroom for the
+# app binary to grow without hitting "app partition is too small".
 nvs,        data, nvs,     ,        0x6000,
 phy_init,   data, phy,     ,        0x1000,
-factory,    app,  factory, ,        0x300000,
-storage,    data, spiffs,  ,        0x100000,
+factory,    app,  factory, ,        0x400000,
+storage,    data, spiffs,  ,        0x400000,
