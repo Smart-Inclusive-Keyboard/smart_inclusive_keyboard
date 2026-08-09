@@ -56,7 +56,7 @@ typedef struct {
 } kb_key_t;
 
 typedef struct {
-    const char     *name;          /* "US", "DE", "FR", "UA"  */
+    const char     *name;          /* "US", "UA"  */
     int             rows;
     int             cols;
     const kb_key_t *keys;           /* rows * cols entries     */
@@ -163,8 +163,6 @@ typedef struct {
 
 /* External tables defined in src/layout_<lang>.c. */
 extern const kb_layout_t kb_layout_us;
-extern const kb_layout_t kb_layout_de;
-extern const kb_layout_t kb_layout_fr;
 extern const kb_layout_t kb_layout_ua;
 
 /* Active layout. Defaults to the first available (Kconfig-activated)

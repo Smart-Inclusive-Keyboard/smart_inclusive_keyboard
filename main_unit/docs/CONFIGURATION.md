@@ -115,10 +115,10 @@ is **not** persisted to NVS: the device always boots with the first
 *available* (Kconfig-activated) language. The active layout is
 bound to the on-screen **Lng** key (right of F12), which rotates
 through the *enabled* languages only (see the settings menu below).
-US and Ukrainian (UA) are full layouts; German (DE) and French (FR)
-are still 1x1 placeholders. The Ukrainian layout renders the real
-Cyrillic letters on the keys (upper-cased while Shift is held),
-using the Cyrillic glyphs embedded in the 10x20 UI font.
+Both US and Ukrainian (UA) are full layouts. The Ukrainian layout
+renders the real Cyrillic letters on the keys (upper-cased while
+Shift is held), using the Cyrillic glyphs embedded in the 10x20 UI
+font.
 
 ### Enabled languages
 
@@ -129,8 +129,6 @@ settings menu and take part in the Lng rotation:
 | Option                  | Default | Layout              |
 | ----------------------- | ------- | ------------------- |
 | `SK_LANG_ENABLE_US`     | y       | US English          |
-| `SK_LANG_ENABLE_DE`     | n       | German (DE) stub    |
-| `SK_LANG_ENABLE_FR`     | n       | French (FR) stub    |
 | `SK_LANG_ENABLE_UA`     | y       | Ukrainian (UA)      |
 
 Layouts not activated here never appear in the settings menu. The
@@ -150,8 +148,6 @@ disables the report for that language:
 | Option                        | Default | Sends           |
 | ----------------------------- | ------- | --------------- |
 | `SK_LAYOUT_SWITCH_DIGIT_US`   | 1       | Ctrl+Shift+1    |
-| `SK_LAYOUT_SWITCH_DIGIT_DE`   | 2       | Ctrl+Shift+2    |
-| `SK_LAYOUT_SWITCH_DIGIT_FR`   | 3       | Ctrl+Shift+3    |
 | `SK_LAYOUT_SWITCH_DIGIT_UA`   | 4       | Ctrl+Shift+4    |
 
 ## Theme

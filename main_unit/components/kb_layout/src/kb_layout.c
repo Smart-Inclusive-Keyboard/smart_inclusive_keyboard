@@ -15,16 +15,6 @@
 #else
 #define SK_EN_US 0
 #endif
-#ifdef CONFIG_SK_LANG_ENABLE_DE
-#define SK_EN_DE 1
-#else
-#define SK_EN_DE 0
-#endif
-#ifdef CONFIG_SK_LANG_ENABLE_FR
-#define SK_EN_FR 1
-#else
-#define SK_EN_FR 0
-#endif
 #ifdef CONFIG_SK_LANG_ENABLE_UA
 #define SK_EN_UA 1
 #else
@@ -33,8 +23,6 @@
 
 static const kb_layout_t *const s_all[] = {
     &kb_layout_us,
-    &kb_layout_de,
-    &kb_layout_fr,
     &kb_layout_ua,
 };
 
@@ -48,8 +36,6 @@ static const kb_layout_t *s_active = &kb_layout_us;
 static bool lang_available_name(const char *name)
 {
     if (strcmp(name, "US") == 0) return SK_EN_US;
-    if (strcmp(name, "DE") == 0) return SK_EN_DE;
-    if (strcmp(name, "FR") == 0) return SK_EN_FR;
     if (strcmp(name, "UA") == 0) return SK_EN_UA;
     return false;
 }
@@ -133,13 +119,10 @@ static void resolve_enabled_default_once(void)
     if (s_enabled_done) return;
     s_enabled_done = true;
     /* Seed the enabled set from the Kconfig per-language switches
-     * (SK_LANG_ENABLE_*). Defaults enable US + UA; DE / FR are
-     * 1x1 stubs and off by default. */
+     * (SK_LANG_ENABLE_*). Defaults enable both US and UA. */
     uint32_t m = 0;
     const struct { const char *name; bool on; } cfg[] = {
         { "US", SK_EN_US },
-        { "DE", SK_EN_DE },
-        { "FR", SK_EN_FR },
         { "UA", SK_EN_UA },
     };
     for (size_t i = 0; i < sizeof(cfg) / sizeof(cfg[0]); ++i) {

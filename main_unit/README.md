@@ -37,7 +37,7 @@ components/
   display/             ILI9341 (SPI) framebuffer + draw API
   fonts/               embedded bitmap fonts (8x16, 16x32)
   theme/               color palette table (default: green on black)
-  kb_layout/           keyboard layouts (US default; DE / FR / UA stubs)
+  kb_layout/           keyboard layouts (US default; UA)
   keyboard_ui/         virtual-keyboard state machine + rendering
   gamepad_uart/        receive-only UART HID-report parser
   input_router/        gamepad events -> UI nav + HID dispatch

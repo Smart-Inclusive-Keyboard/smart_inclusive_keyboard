@@ -302,12 +302,6 @@ choice SK_LAYOUT_DEFAULT
 config SK_LAYOUT_US
     bool "US English (default)"
 
-config SK_LAYOUT_DE
-    bool "German (DE) - layout stub"
-
-config SK_LAYOUT_FR
-    bool "French (FR) - layout stub"
-
 config SK_LAYOUT_UA
     bool "Ukrainian (UA)"
 
@@ -328,14 +322,6 @@ config SK_LANG_ENABLE_US
     bool "Enable US English layout"
     default y
 
-config SK_LANG_ENABLE_DE
-    bool "Enable German (DE) layout"
-    default n
-
-config SK_LANG_ENABLE_FR
-    bool "Enable French (FR) layout"
-    default n
-
 config SK_LANG_ENABLE_UA
     bool "Enable Ukrainian (UA) layout"
     default y
@@ -355,16 +341,6 @@ menu "Host layout-switch hotkey"
 config SK_LAYOUT_SWITCH_DIGIT_US
     int "US English switch digit (0 = none)"
     default 1
-    range 0 9
-
-config SK_LAYOUT_SWITCH_DIGIT_DE
-    int "German (DE) switch digit (0 = none)"
-    default 2
-    range 0 9
-
-config SK_LAYOUT_SWITCH_DIGIT_FR
-    int "French (FR) switch digit (0 = none)"
-    default 3
     range 0 9
 
 config SK_LAYOUT_SWITCH_DIGIT_UA
