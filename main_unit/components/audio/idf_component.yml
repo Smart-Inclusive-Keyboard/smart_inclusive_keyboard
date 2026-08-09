@@ -1,0 +1,16 @@
+## Managed-component dependencies for the audio component.
+##
+## espressif/esp_codec_dev provides a clean abstraction for the
+## ES8311 (and other) I2C-controlled audio codecs. We use its
+## es8311_codec_new() to perform the codec register bring-up
+## that turns the DAC + on-board class-D amplifier on; without
+## it the I2S TX path streams samples into a powered-down codec
+## and the speaker is silent. The component is only actually
+## pulled into the link graph when BOARD_HAS_CODEC_ES8311 is
+## selected -- on boards with a bare DAC the audio.c codec path
+## compiles out.
+dependencies:
+  idf:
+    version: ">=5.3.0"
+  espressif/esp_codec_dev:
+    version: "^1.3.0"

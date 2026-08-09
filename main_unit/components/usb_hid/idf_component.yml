@@ -1,0 +1,15 @@
+## Managed-component dependencies for the USB HID backend.
+##
+## espressif/esp_tinyusb provides the TinyUSB stack pre-integrated
+## with ESP-IDF (driver install, descriptor plumbing, FreeRTOS task).
+## We only request it on targets that actually expose USB OTG; on
+## targets without USB OTG the SK_HID_TRANSPORT_USB Kconfig option
+## isn't selectable anyway (it depends on SOC_USB_OTG_SUPPORTED).
+## See https://components.espressif.com/components/espressif/esp_tinyusb
+dependencies:
+  idf:
+    version: ">=5.3.0"
+  espressif/esp_tinyusb:
+    version: "^1.4.5"
+    rules:
+      - if: "target in [esp32s2, esp32s3, esp32p4]"

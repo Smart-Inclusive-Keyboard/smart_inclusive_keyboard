@@ -1,0 +1,439 @@
+menu "Touch Controller"
+
+# ----------------------------------------------------------------------
+# Hardware board selection.
+# Each entry "select"s the internal capability flags used by main.c.
+# To add a new board: add a config entry here that selects the
+# capabilities it provides (TC_HAS_DISPLAY, TC_HAS_TOUCH), and add a
+# matching #ifdef CONFIG_TC_BOARD_<NAME> block in main/main.c with the
+# correct pin definitions.
+# ----------------------------------------------------------------------
+
+# Internal capability flags selected by the board choice below.  main.c
+# compiles the display and touch subsystems only when these are set.
+config TC_HAS_DISPLAY
+    bool
+
+config TC_HAS_TOUCH
+    bool
+
+choice TC_BOARD
+    prompt "Hardware board"
+    default TC_BOARD_WAVESHARE_C6_TOUCH_LCD_147
+    help
+        Selects the hardware board the firmware is built for.
+        The board choice determines all pin assignments and any
+        board-specific initialisation parameters.
+
+config TC_BOARD_WAVESHARE_C6_TOUCH_LCD_147
+    bool "Waveshare ESP32-C6-Touch-LCD-1.47"
+    depends on IDF_TARGET_ESP32C6
+    select TC_HAS_DISPLAY
+    select TC_HAS_TOUCH
+    help
+        Waveshare ESP32-C6-Touch-LCD-1.47 development board.
+        1.47 inch 172x320 portrait IPS LCD with JD9853 SPI
+        controller and AXS5106L capacitive touch (I2C).
+
+        LCD SPI (SPI2): SCLK=GPIO1, MOSI=GPIO2, MISO=GPIO3,
+                        CS=GPIO14, DC=GPIO15, RST=GPIO22, BL=GPIO23.
+        Touch I2C (I2C0): SDA=GPIO18, SCL=GPIO19, INT=GPIO21, RST=GPIO20.
+        UART gamepad TX: GPIO7 (CONFIG_TC_UART_TX_GPIO default).
+        Vibration motor: GPIO6 (CONFIG_TC_VIBRATION_GPIO default).
+
+config TC_BOARD_GENERIC_ESP32
+    bool "Generic ESP32 (no display, buttons + UART only)"
+    help
+        Generic ESP32 board without a display or touch panel.  Only the
+        UART gamepad output and the pull-up button inputs are used; the
+        LCD, capacitive touch, gesture detection and mode GPIO are all
+        left out of the build.
+
+        Buttons 0-15 (CONFIG_TC_BTN0_GPIO .. CONFIG_TC_BTN15_GPIO) are
+        sampled and streamed as game controller buttons over the
+        transmit-only UART (CONFIG_TC_UART_TX_GPIO).  Set a button GPIO
+        to -1 to leave it unassigned.
+
+endchoice
+
+# ----------------------------------------------------------------------
+# Vibration motor
+# ----------------------------------------------------------------------
+
+config TC_HAS_VIBRATION
+    bool "Vibration motor present"
+    default y if TC_BOARD_WAVESHARE_C6_TOUCH_LCD_147
+    default n
+    help
+        Enable haptic feedback through a vibration motor.  When set, the
+        firmware pulses a GPIO-driven vibration motor to acknowledge
+        gamepad events: a very short buzz on every axis impulse HID
+        report, and distinct patterns when the operating or output mode
+        changes.  Enabled by default on the Waveshare
+        ESP32-C6-Touch-LCD-1.47 board.
+
+menu "Vibration feedback"
+    depends on TC_HAS_VIBRATION
+
+config TC_VIBRATION_GPIO
+    int "Vibration motor GPIO number"
+    default 6
+    range 0 30
+    help
+        Output GPIO that drives the vibration motor (active high).
+        GPIO 4 is the default for the Waveshare C6 Touch LCD 1.47.
+
+config TC_VIB_IMPULSE_MS
+    int "Impulse report buzz (milliseconds)"
+    range 1 500
+    default 90
+    help
+        Duration of the very short vibration emitted each time an axis
+        impulse HID report is issued (impulse mode slide steps).
+
+config TC_VIB_VERTICAL_MS
+    int "Switch-to-VERTICAL buzz (milliseconds)"
+    range 1 2000
+    default 130
+    help
+        Duration of the short vibration emitted when the operating mode
+        switches to VERTICAL.
+
+config TC_VIB_HORIZONTAL_MS
+    int "Switch-to-HORIZONTAL buzz (milliseconds)"
+    range 1 2000
+    default 160
+    help
+        Duration of the slightly longer vibration emitted when the
+        operating mode switches to HORIZONTAL.
+
+config TC_VIB_LONG_MS
+    int "Long buzz (milliseconds)"
+    range 1 2000
+    default 200
+    help
+        Duration of a single long vibration pulse.  One long pulse is
+        emitted when switching to impulse output mode; two long pulses
+        (separated by TC_VIB_GAP_MS) are emitted when switching to
+        continuous output mode.
+
+config TC_VIB_GAP_MS
+    int "Gap between long buzzes (milliseconds)"
+    range 1 2000
+    default 80
+    help
+        Idle gap between the two long vibration pulses emitted when
+        switching to continuous output mode.
+
+endmenu  # Vibration feedback
+
+# ----------------------------------------------------------------------
+# Display appearance
+# ----------------------------------------------------------------------
+
+menu "Display"
+    depends on TC_HAS_DISPLAY
+
+config TC_SCREEN_BRIGHTNESS
+    int "Screen brightness (percent)"
+    range 0 100
+    default 50
+    help
+        Backlight brightness as a percentage of full scale, applied to
+        the LCD backlight PWM at start-up.  0 turns the backlight off,
+        100 drives it at full brightness.
+
+config TC_COLOR_BACKGROUND
+    hex "Background colour (0xRRGGBB)"
+    default 0x000000
+    help
+        Screen background colour as a 24-bit 0xRRGGBB value.
+        The default is black (0x000000).
+
+config TC_COLOR_IMPULSE_IDLE
+    hex "Impulse-mode idle colour (0xRRGGBB)"
+    default 0x3333cc
+    help
+        Impulse-mode idle colour used for the navigation guide lines,
+        arrows and button labels while no sliding gesture is in progress,
+        as a 24-bit 0xRRGGBB value.
+        The default is #3333cc (blue).
+
+config TC_COLOR_IMPULSE_ACTIVE
+    hex "Impulse-mode active colour (0xRRGGBB)"
+    default 0x33ccff
+    help
+        Impulse-mode active colour applied to all on-screen elements as
+        soon as a sliding gesture is detected, as a 24-bit 0xRRGGBB
+        value.  The default is 0x33ccff (light blue).
+
+config TC_COLOR_CONTINUOUS_IDLE
+    hex "Continuous-mode idle colour (0xRRGGBB)"
+    default 0xffff00
+    help
+        Colour of the direction indicator (active edge line) while in
+        continuous mode and no sliding gesture is in progress, as a
+        24-bit 0xRRGGBB value.  The default is 0xffff00 (yellow).
+
+config TC_COLOR_CONTINUOUS_ACTIVE
+    hex "Continuous-mode active colour (0xRRGGBB)"
+    default 0xff8000
+    help
+        Colour of the direction indicator (active edge line) while a
+        sliding gesture is detected in continuous mode, as a 24-bit
+        0xRRGGBB value.  The default is 0xff8000 (orange).
+
+endmenu  # Display
+
+# ----------------------------------------------------------------------
+# UART gamepad output
+# ----------------------------------------------------------------------
+
+menu "UART Gamepad Output"
+
+config TC_UART_TX_GPIO
+    int "UART TX GPIO number"
+    default 7
+    range 0 30
+    help
+        GPIO pin driven as the transmit-only UART output that streams
+        6-byte HID gamepad reports to the esp32s3_smart_keyboard.
+        GPIO 7 is the default for the Waveshare C6 Touch LCD 1.47.
+        Note: on ESP32-C6, GPIOs 12-17 are used by the embedded
+        flash/PSRAM and should not be used for other functions.
+        GPIOs 26-27 are reserved for USB D+/D-.
+
+config TC_UART_BAUD
+    int "Baud rate"
+    default 115200
+    help
+        Baud rate of the 8-N-1 UART link.  Must match the baud rate
+        configured in the receiving esp32s3_smart_keyboard firmware
+        (SK_GAMEPAD_UART_BAUD, default 115200).
+
+endmenu  # UART Gamepad Output
+
+# ----------------------------------------------------------------------
+# Button and mode GPIO inputs
+# ----------------------------------------------------------------------
+
+menu "Button inputs"
+
+comment "Buttons 0-2 default to GPIO4-GPIO6 and button 3 to GPIO8;"
+comment "buttons 4-15 default to unassigned (-1).  On touch boards the"
+comment "mode GPIO defaults to GPIO9.  Remap them to free pins as needed."
+
+config TC_BTN0_GPIO
+    int "Button 0 GPIO number"
+    default -1
+    range -1 30
+    help
+        Pull-up input GPIO that generates game controller button 0
+        when pulled low (pressed).  Set to -1 to leave the button
+        unassigned (no GPIO is configured for it).
+
+config TC_BTN1_GPIO
+    int "Button 1 GPIO number"
+    default -1
+    range -1 30
+    help
+        Pull-up input GPIO that generates game controller button 1
+        when pulled low (pressed).  Set to -1 to leave the button
+        unassigned (no GPIO is configured for it).
+
+config TC_BTN2_GPIO
+    int "Button 2 GPIO number"
+    default -1
+    range -1 30
+    help
+        Pull-up input GPIO that generates game controller button 2
+        when pulled low (pressed).  Set to -1 to leave the button
+        unassigned (no GPIO is configured for it).
+
+config TC_BTN3_GPIO
+    int "Button 3 GPIO number"
+    default -1
+    range -1 30
+    help
+        Pull-up input GPIO that generates game controller button 3
+        when pulled low (pressed).  Set to -1 to leave the button
+        unassigned (no GPIO is configured for it).
+
+config TC_BTN4_GPIO
+    int "Button 4 GPIO number"
+    default -1
+    range -1 30
+    help
+        Pull-up input GPIO that generates game controller button 4
+        when pulled low (pressed).  Set to -1 to leave the button
+        unassigned (no GPIO is configured for it).
+
+config TC_BTN5_GPIO
+    int "Button 5 GPIO number"
+    default -1
+    range -1 30
+    help
+        Pull-up input GPIO that generates game controller button 5
+        when pulled low (pressed).  Set to -1 to leave the button
+        unassigned (no GPIO is configured for it).
+
+config TC_BTN6_GPIO
+    int "Button 6 GPIO number"
+    default -1
+    range -1 30
+    help
+        Pull-up input GPIO that generates game controller button 6
+        when pulled low (pressed).  Set to -1 to leave the button
+        unassigned (no GPIO is configured for it).
+
+config TC_BTN7_GPIO
+    int "Button 7 GPIO number"
+    default -1
+    range -1 30
+    help
+        Pull-up input GPIO that generates game controller button 7
+        when pulled low (pressed).  Set to -1 to leave the button
+        unassigned (no GPIO is configured for it).
+
+config TC_BTN8_GPIO
+    int "Button 8 GPIO number"
+    default -1
+    range -1 30
+    help
+        Pull-up input GPIO that generates game controller button 8
+        when pulled low (pressed).  Set to -1 to leave the button
+        unassigned (no GPIO is configured for it).
+
+config TC_BTN9_GPIO
+    int "Button 9 GPIO number"
+    default -1
+    range -1 30
+    help
+        Pull-up input GPIO that generates game controller button 9
+        when pulled low (pressed).  Set to -1 to leave the button
+        unassigned (no GPIO is configured for it).
+
+        Note: on boards with touch, button 9 is also driven on
+        permanently while in continuous mode; avoid assigning a GPIO
+        to it there unless a shared meaning is intended.
+
+config TC_BTN10_GPIO
+    int "Button 10 GPIO number"
+    default -1
+    range -1 30
+    help
+        Pull-up input GPIO that generates game controller button 10
+        when pulled low (pressed).  Set to -1 to leave the button
+        unassigned (no GPIO is configured for it).
+
+config TC_BTN11_GPIO
+    int "Button 11 GPIO number"
+    default -1
+    range -1 30
+    help
+        Pull-up input GPIO that generates game controller button 11
+        when pulled low (pressed).  Set to -1 to leave the button
+        unassigned (no GPIO is configured for it).
+
+config TC_BTN12_GPIO
+    int "Button 12 GPIO number"
+    default -1
+    range -1 30
+    help
+        Pull-up input GPIO that generates game controller button 12
+        when pulled low (pressed).  Set to -1 to leave the button
+        unassigned (no GPIO is configured for it).
+
+config TC_BTN13_GPIO
+    int "Button 13 GPIO number"
+    default -1
+    range -1 30
+    help
+        Pull-up input GPIO that generates game controller button 13
+        when pulled low (pressed).  Set to -1 to leave the button
+        unassigned (no GPIO is configured for it).
+
+config TC_BTN14_GPIO
+    int "Button 14 GPIO number"
+    default -1
+    range -1 30
+    help
+        Pull-up input GPIO that generates game controller button 14
+        when pulled low (pressed).  Set to -1 to leave the button
+        unassigned (no GPIO is configured for it).
+
+config TC_BTN15_GPIO
+    int "Button 15 GPIO number"
+    default -1
+    range -1 30
+    help
+        Pull-up input GPIO that generates game controller button 15
+        when pulled low (pressed).  Set to -1 to leave the button
+        unassigned (no GPIO is configured for it).
+
+config TC_MODE_GPIO
+    int "Impulse/continuous mode GPIO number"
+    depends on TC_HAS_TOUCH
+    default 5
+    range 0 30
+    help
+        Pull-up input GPIO used as an active-low push button that toggles
+        the axis output mode.  Each press (high->low edge) switches
+        between impulse and continuous mode; the level does not need to be
+        held.  The controller starts in impulse mode.  In continuous mode
+        button 9 is held on and the active axis is proportional to the
+        sliding finger distance from the middle of the touch screen.
+
+endmenu  # Button inputs
+
+# ----------------------------------------------------------------------
+# Gesture detection thresholds
+# ----------------------------------------------------------------------
+
+menu "Gesture thresholds"
+    depends on TC_HAS_TOUCH
+
+config TC_SLIDE_MIN_PX
+    int "Minimum slide distance (pixels)"
+    range 5 150
+    default 25
+    help
+        Minimum touch travel in pixels (in the primary direction)
+        needed to classify a gesture as a slide rather than a tap.
+        Reducing this value makes slides easier to trigger but more
+        prone to false positives on taps.
+
+config TC_TAP_MAX_MOVE_PX
+    int "Maximum tap movement (pixels)"
+    range 2 50
+    default 15
+    help
+        Maximum total touch displacement in pixels while the finger
+        is down for the gesture to still be classified as a tap.
+        Must be smaller than TC_SLIDE_MIN_PX for unambiguous
+        gesture separation.
+
+config TC_LONG_TAP_MS
+    int "Long-tap threshold (milliseconds)"
+    range 200 3000
+    default 500
+    help
+        Minimum contact duration in milliseconds for a stationary
+        touch (displacement < TC_TAP_MAX_MOVE_PX) to be classified
+        as a long tap, which switches between horizontal and
+        vertical operating modes.
+
+config TC_SLIDE_FULL_EVENTS
+    int "Axis events per full-length slide"
+    range 1 20
+    default 3
+    help
+        Number of axis impulse events generated by a slide that spans
+        the full length of the screen.  Shorter slides emit
+        proportionally fewer events (always at least one).  Increasing
+        this value makes a single long slide advance the navigation
+        target by several steps.
+
+endmenu  # Gesture thresholds
+
+endmenu  # Touch Controller

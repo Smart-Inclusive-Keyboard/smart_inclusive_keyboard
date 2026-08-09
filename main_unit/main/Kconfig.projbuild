@@ -1,0 +1,429 @@
+menu "SMART KEYBOARD"
+
+#
+# Hardware board selection. Each board entry "select"s capability
+# symbols that other components key off of. To add a new board,
+# duplicate one of the entries below, add a matching pin/init file
+# under components/board/src/board_<name>.c, and reference it from
+# components/board/CMakeLists.txt.
+#
+
+choice SK_BOARD
+    prompt "Target board"
+    default SK_BOARD_FREENOVE_FNK0104A
+    help
+        Selects the hardware board the firmware is built for.
+        The board choice determines pin assignments, display
+        controller, presence of speaker, and
+        which capability flags are exposed to the rest of the
+        firmware.
+
+config SK_BOARD_FREENOVE_FNK0104A
+    bool "Freenove FNK0104A (2.8\" ILI9341, NonTouch)"
+    depends on IDF_TARGET_ESP32S3
+    select BOARD_HAS_PSRAM
+    select BOARD_HAS_DISPLAY
+    select BOARD_HAS_DISPLAY_ILI9341
+    select BOARD_HAS_SPEAKER
+    select BOARD_HAS_CODEC_ES8311
+    help
+        Freenove ESP32-S3 2.8" display board (FNK0104A) with a
+        240x320 ILI9341 SPI panel exposed as 320x240 landscape.
+        No touchscreen. Includes an on-board I2S speaker driven by
+        an ES8311 codec (MCLK=4, BCLK=5, LRCK=7, DOUT=8;
+        codec I2C SDA=16, SCL=15, PA enable=1) which is wired up
+        automatically for the narrator. The two external gamepads
+        stream HID reports into receive-only UARTs on GPIO 2 and
+        GPIO 3.
+
+config SK_BOARD_GENERIC_ESP32S3
+    bool "Generic ESP32-S3 (no display configured)"
+    depends on IDF_TARGET_ESP32S3
+    help
+        Placeholder for a custom ESP32-S3 board. Pin definitions
+        live in components/board/src/board_generic_s3.c -- edit
+        that file to match your wiring.
+
+config SK_BOARD_GENERIC_ESP32
+    bool "Generic ESP32 (no display configured)"
+    depends on IDF_TARGET_ESP32
+    help
+        Placeholder for a custom classic-ESP32 board.
+
+endchoice
+
+#
+# Capability flags. Each board "select"s the subset it has; the rest
+# of the firmware reads them via #ifdef CONFIG_BOARD_HAS_xxx.
+#
+
+config BOARD_HAS_PSRAM
+    bool
+    default n
+
+config BOARD_HAS_DISPLAY
+    bool
+    default n
+
+config BOARD_HAS_DISPLAY_ILI9341
+    bool
+    default n
+
+config BOARD_HAS_SPEAKER
+    bool
+    default n
+
+config BOARD_HAS_CODEC_ES8311
+    bool
+    default n
+
+config BOARD_HAS_BATTERY
+    bool
+    default n
+
+#
+# Display options.
+#
+
+menu "Display"
+
+config SK_DISPLAY_BACKLIGHT_PERCENT
+    int "Backlight brightness (percent)"
+    range 0 100
+    default 50 if SK_BOARD_FREENOVE_FNK0104A
+    default 80
+    help
+        Panel backlight brightness applied at boot, as a percentage
+        of full brightness (0 = off, 100 = maximum). Boards with a
+        controllable backlight (LEDC PWM) honour this value; boards
+        without one ignore it. The default is tuned per board
+        (50% for the Freenove FNK0104A).
+
+config SK_DISPLAY_ROTATE_180
+    bool "Rotate display 180 degrees"
+    default n
+    help
+        Flips the panel image 180 degrees (both axes mirrored) at
+        the display-controller level. Useful when the panel is
+        physically mounted upside-down relative to its default
+        orientation -- for example, the Freenove FNK0104A when
+        installed rotated 180 degrees in its enclosure.
+
+endmenu  # Display
+
+#
+# External gamepads. Each gamepad is a separate board that streams
+# its HID report over a one-way (receive-only) UART link. Two
+# gamepads are supported; both feed the same on-screen keyboard.
+# Set the UART port, RX pin and baud rate for each, plus the shared
+# analog-stick dead-zone.
+#
+
+menu "Gamepad"
+
+config SK_GAMEPAD_AXIS_DEADZONE
+    int "Axis dead-zone (signed, 0..32767)"
+    default 8000
+    range 0 32767
+    help
+        Analog-stick dead-zone applied to the signed 16-bit axes
+        carried in the gamepad HID report. Stick deflection within
+        +/- this value is treated as centred so the on-screen
+        cursor / selection does not drift. Shared by both gamepads.
+
+config SK_GAMEPAD1_UART_PORT
+    int "Gamepad 1 UART port number"
+    default 1
+    range 1 2
+    help
+        UART peripheral used to receive the first gamepad's HID
+        reports. UART0 is normally the console, so pick UART1 or
+        UART2. Must differ from gamepad 2's UART port.
+
+config SK_GAMEPAD1_UART_RX_GPIO
+    int "Gamepad 1 UART RX GPIO"
+    default 2
+    help
+        GPIO the first gamepad's TX line is wired to. The interface
+        is receive-only; no TX / RTS / CTS pin is driven. Set to -1
+        to disable the first gamepad.
+
+config SK_GAMEPAD1_UART_BAUD
+    int "Gamepad 1 UART baud rate"
+    default 115200
+    help
+        Baud rate of the 8-N-1 UART link. Must match the first
+        gamepad's transmit baud rate.
+
+config SK_GAMEPAD2_UART_PORT
+    int "Gamepad 2 UART port number"
+    default 2
+    range 1 2
+    help
+        UART peripheral used to receive the second gamepad's HID
+        reports. UART0 is normally the console, so pick UART1 or
+        UART2. Must differ from gamepad 1's UART port.
+
+config SK_GAMEPAD2_UART_RX_GPIO
+    int "Gamepad 2 UART RX GPIO"
+    default 3
+    help
+        GPIO the second gamepad's TX line is wired to. The interface
+        is receive-only; no TX / RTS / CTS pin is driven. Set to -1
+        to disable the second gamepad.
+
+config SK_GAMEPAD2_UART_BAUD
+    int "Gamepad 2 UART baud rate"
+    default 115200
+    help
+        Baud rate of the 8-N-1 UART link. Must match the second
+        gamepad's transmit baud rate.
+
+endmenu  # Gamepad
+
+#
+# HID transport selection. The device acts as a HID peripheral over
+# either Bluetooth Low Energy or USB. Each option is only offered
+# when the selected ESP32 model actually has the matching radio /
+# controller (SOC_BLE_SUPPORTED / SOC_USB_OTG_SUPPORTED come from
+# the IDF SoC capability headers).
+#
+
+choice SK_HID_TRANSPORT
+    prompt "HID interface"
+    default SK_HID_TRANSPORT_USB
+    help
+        Selects the transport the device uses to act as a HID
+        peripheral. Only interfaces supported by the chosen
+        ESP32 model are selectable: BLE requires a Bluetooth LE
+        radio, USB requires on-chip USB OTG (e.g. ESP32-S2 /
+        ESP32-S3).
+
+config SK_HID_TRANSPORT_BLE
+    bool "BLE HID (Bluetooth LE keyboard)"
+    depends on SOC_BLE_SUPPORTED
+    select BT_ENABLED
+    help
+        Use NimBLE to advertise a composite HID-over-GATT
+        keyboard + mouse. Auto-enables the Bluetooth controller.
+
+        The NimBLE host (CONFIG_BT_NIMBLE_ENABLED) must also be
+        selected as the Bluetooth host stack. It is set by
+        sdkconfig.defaults for fresh builds, but cannot be
+        force-selected from here because BT_NIMBLE_ENABLED is a
+        member of ESP-IDF's `choice BT_HOST` (Kconfig disallows
+        `select` on choice members). If you carried over an
+        sdkconfig that has Bluedroid as the host, switch it in
+        menuconfig:
+          Component config -> Bluetooth -> Host -> NimBLE - BLE only
+        or delete sdkconfig and re-run `idf.py set-target ...`.
+        components/ble_hid/CMakeLists.txt asserts this and emits
+        a clear error otherwise.
+
+config SK_HID_TRANSPORT_USB
+    bool "USB HID (USB keyboard)"
+    depends on SOC_USB_OTG_SUPPORTED
+    help
+        Use TinyUSB to expose a composite HID keyboard + mouse
+        on the on-chip USB OTG controller. The Bluetooth stack
+        can be disabled in 'Component config -> Bluetooth' to
+        reclaim ~60 KB flash / ~30 KB RAM.
+
+endchoice
+
+#
+# BLE HID device identity.
+#
+
+menu "BLE HID"
+    depends on SK_HID_TRANSPORT_BLE
+
+config SK_BLE_DEVICE_NAME
+    string "Advertised device name"
+    default "SmartKeyboard"
+
+config SK_BLE_MANUFACTURER
+    string "Manufacturer string"
+    default "clackups"
+
+config SK_BLE_BOND_ON_PAIR
+    bool "Persist bonds to NVS"
+    default y
+
+endmenu  # BLE HID
+
+#
+# USB HID device identity. Shown by the host's Device Manager /
+# `lsusb` output.
+#
+
+menu "USB HID"
+    depends on SK_HID_TRANSPORT_USB
+
+config SK_USB_MANUFACTURER
+    string "USB iManufacturer string"
+    default "clackups"
+
+config SK_USB_PRODUCT
+    string "USB iProduct string"
+    default "SmartKeyboard"
+
+config SK_USB_SERIAL
+    string "USB iSerial string"
+    default "000001"
+    help
+        Used as the serial-number string descriptor. Hosts use
+        this to distinguish multiple identical devices; pick
+        something unique if you flash more than one board.
+
+endmenu  # USB HID
+
+#
+# Keyboard layout.
+#
+
+choice SK_LAYOUT_DEFAULT
+    prompt "Default keyboard layout"
+    default SK_LAYOUT_US
+    help
+        Compile-time default layout. The runtime layout can be
+        switched via the on-screen menu and is persisted in NVS.
+
+config SK_LAYOUT_US
+    bool "US English (default)"
+
+config SK_LAYOUT_DE
+    bool "German (DE) - layout stub"
+
+config SK_LAYOUT_FR
+    bool "French (FR) - layout stub"
+
+config SK_LAYOUT_UA
+    bool "Ukrainian (UA)"
+
+endchoice
+
+#
+# Enabled-language set. The on-screen settings menu lets the user
+# cycle the active layout through the *enabled* languages (the "Lng"
+# key) and toggle membership at runtime (persisted in NVS). These
+# options seed the default enabled set on first boot / after an NVS
+# erase. The compile-time default layout (SK_LAYOUT_DEFAULT above)
+# is always force-added to the enabled set regardless of these.
+#
+
+menu "Enabled languages"
+
+config SK_LANG_ENABLE_US
+    bool "Enable US English layout"
+    default y
+
+config SK_LANG_ENABLE_DE
+    bool "Enable German (DE) layout"
+    default n
+
+config SK_LANG_ENABLE_FR
+    bool "Enable French (FR) layout"
+    default n
+
+config SK_LANG_ENABLE_UA
+    bool "Enable Ukrainian (UA) layout"
+    default y
+
+endmenu  # Enabled languages
+
+#
+# Host-side layout switch. Many operating systems switch their input
+# language with a global hotkey. When the device's active layout
+# changes, the firmware emits Ctrl+Shift+<digit> so the host follows
+# along. Set each language's digit (0 disables the report for that
+# language). Defaults: US -> Ctrl+Shift+1, UA -> Ctrl+Shift+4.
+#
+
+menu "Host layout-switch hotkey"
+
+config SK_LAYOUT_SWITCH_DIGIT_US
+    int "US English switch digit (0 = none)"
+    default 1
+    range 0 9
+
+config SK_LAYOUT_SWITCH_DIGIT_DE
+    int "German (DE) switch digit (0 = none)"
+    default 2
+    range 0 9
+
+config SK_LAYOUT_SWITCH_DIGIT_FR
+    int "French (FR) switch digit (0 = none)"
+    default 3
+    range 0 9
+
+config SK_LAYOUT_SWITCH_DIGIT_UA
+    int "Ukrainian (UA) switch digit (0 = none)"
+    default 4
+    range 0 9
+
+endmenu  # Host layout-switch hotkey
+
+#
+# Color theme.
+#
+
+choice SK_THEME_DEFAULT
+    prompt "Default color theme"
+    default SK_THEME_GREEN_ON_BLACK
+    help
+        Compile-time default theme. May be overridden at runtime
+        via the on-screen menu (persisted in NVS).
+
+config SK_THEME_GREEN_ON_BLACK
+    bool "Green on black (default)"
+
+config SK_THEME_DARKGREEN_ON_BLACK
+    bool "Dark green on black"
+
+config SK_THEME_WHITE_ON_BLACK
+    bool "White on black"
+
+config SK_THEME_BLACK_ON_WHITE
+    bool "Black on white"
+
+config SK_THEME_DEFAULT_PALETTE
+    bool "Plain default palette"
+
+endchoice
+
+#
+# Audio / narrator. The whole menu is hidden unless the board has
+# a speaker, because narration requires both.
+#
+
+menu "Audio / Narrator"
+    depends on BOARD_HAS_SPEAKER
+
+config NARRATOR_ENABLE
+    bool "Speak letter names as the user navigates"
+    default y
+
+config AUDIO_I2S_PORT
+    int "I2S port number"
+    default 0
+    range 0 1
+    help
+        Sound output is always over I2S (no internal-DAC / PWM
+        fallback). Set the port number that matches your board.
+
+config AUDIO_I2S_BCLK_GPIO
+    int "I2S BCLK (bit clock) GPIO"
+    default 5
+
+config AUDIO_I2S_LRCK_GPIO
+    int "I2S LRCK (word select) GPIO"
+    default 6
+
+config AUDIO_I2S_DOUT_GPIO
+    int "I2S DOUT (serial data) GPIO"
+    default 7
+
+endmenu  # Audio / Narrator
+
+endmenu  # SMART KEYBOARD

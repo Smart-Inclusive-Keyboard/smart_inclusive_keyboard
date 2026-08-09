@@ -1,0 +1,26 @@
+# Target: Waveshare ESP32-C6-Touch-LCD-1.47
+CONFIG_IDF_TARGET="esp32c6"
+
+# Flash
+CONFIG_ESPTOOLPY_FLASHSIZE_4MB=y
+CONFIG_ESPTOOLPY_FLASHMODE_QIO=y
+
+# FreeRTOS
+CONFIG_FREERTOS_HZ=1000
+
+# Main task stack -- needs headroom for hardware init
+CONFIG_ESP_MAIN_TASK_STACK_SIZE=8192
+
+# LVGL -- the JD9853 on this board expects byte-swapped RGB565
+CONFIG_LV_COLOR_16_SWAP=y
+
+# LVGL heap budget
+CONFIG_LV_MEM_SIZE_KILOBYTES=48
+
+# Fonts used by the navigation guide UI
+CONFIG_LV_FONT_MONTSERRAT_12=y
+CONFIG_LV_FONT_MONTSERRAT_14=y
+CONFIG_LV_FONT_DEFAULT_MONTSERRAT_14=y
+
+# LVGL built-in symbols (arrows) require the symbol font
+CONFIG_LV_FONT_MONTSERRAT_16=y

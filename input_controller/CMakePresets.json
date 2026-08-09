@@ -1,0 +1,23 @@
+{
+    "version": 3,
+    "configurePresets": [
+        {
+            "name": "default",
+            "binaryDir": "build/default",
+            "displayName": "Default Configuration",
+            "cacheVariables": {
+                "SDKCONFIG_DEFAULTS": "sdkconfig.defaults",
+                "SDKCONFIG": "./build/default/sdkconfig"
+            }
+        },
+        {
+            "name": "secondary_esp32c3",
+            "binaryDir": "build/secondary_esp32c3",
+            "displayName": "Secondary esp32c3",
+            "cacheVariables": {
+                "SDKCONFIG_DEFAULTS": "sdkconfig.defaults.secondary_esp32c3",
+                "SDKCONFIG": "./build/secondary_esp32c3/sdkconfig"
+            }
+        }
+    ]
+}
