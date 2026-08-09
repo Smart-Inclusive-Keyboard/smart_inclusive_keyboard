@@ -183,6 +183,16 @@ config TC_COLOR_CONTINUOUS_ACTIVE
         sliding gesture is detected in continuous mode, as a 24-bit
         0xRRGGBB value.  The default is 0xff8000 (orange).
 
+config TC_SCREENSAVER_TIMEOUT_S
+    int "Screen saver timeout (seconds, 0 = disabled)"
+    depends on TC_HAS_DISPLAY
+    default 60
+    range 0 3600
+    help
+        Inactivity timeout after which the display backlight is
+        turned off to save power. Any touch or button press turns
+        it back on. Set to 0 to disable the screen saver.
+
 endmenu  # Display
 
 # ----------------------------------------------------------------------

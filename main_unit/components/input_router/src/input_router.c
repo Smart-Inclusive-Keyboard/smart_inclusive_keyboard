@@ -38,6 +38,7 @@
 #include "hid.h"
 #include "kb_layout.h"
 #include "narrator.h"
+#include "display.h"
 #include "sdkconfig.h"
 
 static const char *TAG = "input_router";
@@ -73,6 +74,40 @@ static btn_state_t s_b[GP_BTN_COUNT];
 
 /* current state of mouse buttons that we send in HID reports */
 static uint8_t s_mouse_buttons;
+
+/*
+ * Screen saver: after CONFIG_SK_SCREENSAVER_TIMEOUT_S of gamepad
+ * inactivity (no button edges, D-pad presses or analog motion) the
+ * display backlight is turned off; any subsequent activity restores
+ * it to the configured brightness. A timeout of 0 disables the
+ * screen saver entirely (activity tracking is skipped).
+ */
+#if CONFIG_SK_SCREENSAVER_TIMEOUT_S > 0
+static uint32_t s_last_activity_ms;
+static bool     s_screen_off;
+
+static void screensaver_wake(uint32_t now)
+{
+    s_last_activity_ms = now;
+    if (s_screen_off) {
+        display_set_backlight(CONFIG_SK_DISPLAY_BACKLIGHT_PERCENT);
+        s_screen_off = false;
+    }
+}
+
+static void screensaver_tick(uint32_t now)
+{
+    if (s_screen_off) return;
+    uint32_t timeout_ms = (uint32_t)CONFIG_SK_SCREENSAVER_TIMEOUT_S * 1000u;
+    if (now - s_last_activity_ms >= timeout_ms) {
+        display_set_backlight(0);
+        s_screen_off = true;
+    }
+}
+#else
+static inline void screensaver_wake(uint32_t now) { (void)now; }
+static inline void screensaver_tick(uint32_t now) { (void)now; }
+#endif
 
 static inline bool is_dir(gamepad_button_t b)
 {
@@ -324,6 +359,7 @@ static void mouse_axes_apply(uint32_t now)
     int dy = axis_to_delta(ay, max_step);
 
     if (dx || dy) {
+        screensaver_wake(now);
         hid_send_mouse(dx, dy, s_mouse_buttons, 0);
     }
 }
@@ -339,6 +375,7 @@ static void router_task(void *arg)
         /* Wake up at least every 20 ms so we can service
          * hold-to-repeat even while no new events arrive. */
         if (xQueueReceive(q, &ev, pdMS_TO_TICKS(20)) == pdTRUE) {
+            screensaver_wake(ev.time_ms);
             if (!is_mouse_mode || !is_dir(ev.button)) {
                 ESP_LOGD(TAG, "%s %s", gamepad_button_name(ev.button), ev.pressed ? "down" : "up");
                 if (ev.pressed)
@@ -349,6 +386,7 @@ static void router_task(void *arg)
         }
 
         uint32_t now = (uint32_t)(esp_timer_get_time() / 1000);
+        screensaver_tick(now);
         if( is_mouse_mode ) {
             /* Proportional pointer motion: while in mouse mode, drive
              * the cursor straight from the live analog axes every
@@ -364,6 +402,9 @@ static void router_task(void *arg)
 void input_router_start(QueueHandle_t events)
 {
     if (!events) return;
+#if CONFIG_SK_SCREENSAVER_TIMEOUT_S > 0
+    s_last_activity_ms = (uint32_t)(esp_timer_get_time() / 1000);
+#endif
     xTaskCreatePinnedToCore(router_task, "input_rt", 4096,
                             (void *)events, 5, NULL, 0);
 }

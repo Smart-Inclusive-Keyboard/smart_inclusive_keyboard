@@ -109,6 +109,16 @@ config SK_DISPLAY_ROTATE_180
         orientation -- for example, the Freenove FNK0104A when
         installed rotated 180 degrees in its enclosure.
 
+config SK_SCREENSAVER_TIMEOUT_S
+    int "Screen saver timeout (seconds, 0 = disabled)"
+    default 60
+    range 0 3600
+    help
+        Inactivity timeout after which the display backlight is
+        turned off to save power. Any gamepad button press,
+        directional input or mouse motion turns it back on. Set
+        to 0 to disable the screen saver.
+
 endmenu  # Display
 
 #
