@@ -45,7 +45,7 @@ components/
   fonts/               embedded 8x8 bitmap font (public-domain
                        font8x8) + scaled-glyph helpers
   theme/               color palette table (default green-on-black)
-  kb_layout/           keyboard layouts (US default, DE / FR / UA stubs)
+  kb_layout/           keyboard layouts (US default, UA)
   keyboard_ui/         virtual-keyboard state machine + rendering;
                        owns selection cursor, modifier latches,
                        status bar, mouse-mode overlay

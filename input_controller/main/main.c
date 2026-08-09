@@ -219,6 +219,10 @@ static lv_obj_t                 *s_line_top;    /* shown in HORIZONTAL mode */
 static lv_obj_t                 *s_lbl_up;      /* up arrow                 */
 static lv_obj_t                 *s_lbl_dn;      /* down arrow               */
 static lv_obj_t                 *s_divider;     /* short centre line        */
+
+/* Backlight PWM full-scale duty (2^BL_LEDC_DUTY_RES - 1), computed once
+ * in hw_lcd_init(), used to scale a 0..100 percent request. */
+static uint32_t s_bl_max_duty;
 #endif /* CONFIG_TC_HAS_DISPLAY */
 #if CONFIG_TC_HAS_TOUCH
 static esp_lcd_touch_handle_t    s_touch;
@@ -293,9 +297,9 @@ static void hw_lcd_init(void)
     };
     ESP_ERROR_CHECK(ledc_timer_config(&ledc_timer));
 
-    const uint32_t bl_max_duty = (1u << BL_LEDC_DUTY_RES) - 1u;
+    s_bl_max_duty = (1u << BL_LEDC_DUTY_RES) - 1u;
     const uint32_t bl_duty =
-        (bl_max_duty * (uint32_t)CONFIG_TC_SCREEN_BRIGHTNESS) / 100u;
+        (s_bl_max_duty * (uint32_t)CONFIG_TC_SCREEN_BRIGHTNESS) / 100u;
 
     const ledc_channel_config_t ledc_ch = {
         .speed_mode = BL_LEDC_MODE,
@@ -308,6 +312,51 @@ static void hw_lcd_init(void)
     };
     ESP_ERROR_CHECK(ledc_channel_config(&ledc_ch));
 }
+
+/* Drive the backlight PWM to `percent` (0..100) of full brightness.
+ * Used both for the initial CONFIG_TC_SCREEN_BRIGHTNESS setting and
+ * by the screen-saver to blank / restore the panel. */
+static void bl_set_percent(int percent)
+{
+    if (percent < 0) percent = 0;
+    if (percent > 100) percent = 100;
+    uint32_t duty = (s_bl_max_duty * (uint32_t)percent) / 100u;
+    ledc_set_duty(BL_LEDC_MODE, BL_LEDC_CH, duty);
+    ledc_update_duty(BL_LEDC_MODE, BL_LEDC_CH);
+}
+
+/* ---------------------------------------------------------------------
+ * Screen saver: after CONFIG_TC_SCREENSAVER_TIMEOUT_S of touch/button
+ * inactivity, turn the backlight off; any touch or button activity
+ * restores it to CONFIG_TC_SCREEN_BRIGHTNESS. A timeout of 0 disables
+ * the screen saver entirely.
+ * --------------------------------------------------------------------- */
+#if CONFIG_TC_SCREENSAVER_TIMEOUT_S > 0
+static uint32_t s_last_activity_ms;
+static bool     s_screen_off;
+
+static void screensaver_wake(uint32_t now)
+{
+    s_last_activity_ms = now;
+    if (s_screen_off) {
+        bl_set_percent(CONFIG_TC_SCREEN_BRIGHTNESS);
+        s_screen_off = false;
+    }
+}
+
+static void screensaver_tick(uint32_t now)
+{
+    if (s_screen_off) return;
+    uint32_t timeout_ms = (uint32_t)CONFIG_TC_SCREENSAVER_TIMEOUT_S * 1000u;
+    if (now - s_last_activity_ms >= timeout_ms) {
+        bl_set_percent(0);
+        s_screen_off = true;
+    }
+}
+#else
+static inline void screensaver_wake(uint32_t now) { (void)now; }
+static inline void screensaver_tick(uint32_t now) { (void)now; }
+#endif
 #endif /* CONFIG_TC_HAS_DISPLAY */
 
 #if CONFIG_TC_HAS_TOUCH
@@ -850,6 +899,11 @@ static void touch_task(void *arg)
     while (1) {
         vTaskDelay(pdMS_TO_TICKS(INPUT_POLL_MS));
 
+#if CONFIG_TC_HAS_DISPLAY
+        uint32_t now_ms = (uint32_t)(esp_timer_get_time() / 1000);
+        screensaver_tick(now_ms);
+#endif
+
         /* -- Sample button GPIOs (buttons 0-15, active low). -- */
         uint16_t btn_mask = 0;
         for (int i = 0; i < BTN_GPIO_COUNT; i++) {
@@ -858,11 +912,19 @@ static void touch_task(void *arg)
             }
         }
         s_gpio_buttons = btn_mask;
+#if CONFIG_TC_HAS_DISPLAY
+        if (btn_mask) {
+            screensaver_wake(now_ms);
+        }
+#endif
 
         /* -- Sample the mode GPIO: each press (high->low edge) toggles
          *    between impulse and continuous output mode. -- */
         int mode_level = gpio_get_level(MODE_GPIO);
         if (mode_level == 0 && prev_mode_level != 0) {
+#if CONFIG_TC_HAS_DISPLAY
+            screensaver_wake(now_ms);
+#endif
             tc_output_mode_t out_mode =
                 (s_output_mode == OUTPUT_CONTINUOUS) ? OUTPUT_IMPULSE
                                                      : OUTPUT_CONTINUOUS;
@@ -906,6 +968,9 @@ static void touch_task(void *arg)
         if (touched) {
             last_x = x;
             last_y = y;
+#if CONFIG_TC_HAS_DISPLAY
+            screensaver_wake(now_ms);
+#endif
         }
 
         if (touched && !was_touching) {

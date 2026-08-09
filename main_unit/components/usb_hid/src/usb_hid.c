@@ -47,6 +47,31 @@ static const char *TAG = "usb_hid";
 #define REPORT_ID_KEYBOARD  0x01
 #define REPORT_ID_MOUSE     0x02
 
+/* USB device identity: pid.codes open-source VID (0x1209) with this
+ * project's assigned PID (0xBBD2). See https://pid.codes/1209/BBD2/ */
+#define USB_VID  0x1209
+#define USB_PID  0xBBD2
+
+/* Full device descriptor (overrides TinyUSB's default, which uses
+ * Espressif's own VID/PID). String indices match s_string_desc[]
+ * below: 1 = iManufacturer, 2 = iProduct, 3 = iSerialNumber. */
+static const tusb_desc_device_t s_device_descriptor = {
+    .bLength            = sizeof(tusb_desc_device_t),
+    .bDescriptorType    = TUSB_DESC_DEVICE,
+    .bcdUSB             = 0x0200,
+    .bDeviceClass       = TUSB_CLASS_UNSPECIFIED,
+    .bDeviceSubClass    = 0x00,
+    .bDeviceProtocol    = 0x00,
+    .bMaxPacketSize0    = CFG_TUD_ENDPOINT0_SIZE,
+    .idVendor           = USB_VID,
+    .idProduct          = USB_PID,
+    .bcdDevice          = 0x0100,
+    .iManufacturer      = 0x01,
+    .iProduct           = 0x02,
+    .iSerialNumber      = 0x03,
+    .bNumConfigurations = 0x01,
+};
+
 /* USB HID report descriptor: two top-level Application collections
  * (keyboard + mouse) tagged with their respective report IDs. The
  * TinyUSB TUD_HID_REPORT_DESC_* macros emit the exact byte sequence
@@ -249,7 +274,7 @@ void usb_hid_init(usb_status_cb_t cb)
     s_status_cb = cb;
 
     const tinyusb_config_t tusb_cfg = {
-        .device_descriptor        = NULL,              /* use TinyUSB default device descriptor */
+        .device_descriptor        = &s_device_descriptor,
         .string_descriptor        = s_string_desc,
         .string_descriptor_count  = sizeof(s_string_desc) / sizeof(s_string_desc[0]),
         .external_phy             = false,             /* on-chip USB PHY */

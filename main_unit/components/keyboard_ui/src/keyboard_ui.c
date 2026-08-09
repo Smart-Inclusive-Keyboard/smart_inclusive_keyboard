@@ -891,8 +891,6 @@ static int layout_switch_digit(const kb_layout_t *l)
 {
     if (!l) return 0;
     if (strcmp(l->name, "US") == 0) return CONFIG_SK_LAYOUT_SWITCH_DIGIT_US;
-    if (strcmp(l->name, "DE") == 0) return CONFIG_SK_LAYOUT_SWITCH_DIGIT_DE;
-    if (strcmp(l->name, "FR") == 0) return CONFIG_SK_LAYOUT_SWITCH_DIGIT_FR;
     if (strcmp(l->name, "UA") == 0) return CONFIG_SK_LAYOUT_SWITCH_DIGIT_UA;
     return 0;
 }

@@ -8,7 +8,7 @@ The keyboard layout is a static `kb_layout_t` describing a
 
 ## Steps
 
-1. **Pick a short identifier** (`"US"`, `"DE"`, `"FR"`, `"UA"`,
+1. **Pick a short identifier** (`"US"`, `"UA"`,
    ...). It is used as the menu label in the status bar.
 
 2. **Copy `layout_us.c`** to `layout_<lang>.c`.
@@ -93,6 +93,4 @@ font8x8 covering ASCII 0x20..0x7E; multi-character labels and the
 status bar use it. Single-glyph key labels use the 10x20 font,
 which additionally carries the embedded Ukrainian Cyrillic glyphs
 described above. Layouts whose letters are not yet in the 10x20
-font fall back to short Latin transliterations. The German (`DE`)
-and French (`FR`) layouts still ship as 1x1 placeholders until they
-are filled in the same way.
+font fall back to short Latin transliterations.
