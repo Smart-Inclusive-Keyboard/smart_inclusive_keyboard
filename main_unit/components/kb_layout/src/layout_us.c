@@ -25,6 +25,15 @@
 #define K(lu, ls, u)         { (lu), (ls), (u), KB_KEY_SPECIAL_NONE, NULL, NULL, 0 }
 #define KSP(lu, ls, u, sp)   { (lu), (ls), (u), (sp),                NULL, NULL, 0 }
 #define KNONE                { "",   "",   HID_USAGE_NONE, KB_KEY_SPECIAL_NONE, NULL, NULL, 0 }
+/* Key whose Shift glyph differs from the plain digit / mark HID
+ * usage the host still receives the unshifted usage byte for, so
+ * the narrator can't derive the shifted symbol's name from the
+ * usage alone (e.g. Shift+1 sends usage HID_USAGE_1, but the host
+ * types "!"). `ss` names the narrator clip token
+ * (components/narrator/wav/<ss>.wav) to speak instead when Shift
+ * is held; the unshifted side still falls back to the HID-usage
+ * clip (digit / backtick / minus / equals). */
+#define KSH(lu, ls, u, ss)   { (lu), (ls), (u), KB_KEY_SPECIAL_NONE, NULL, (ss), 0 }
 
 #define ROWS 6
 #define COLS 17
@@ -48,12 +57,19 @@ static const kb_key_t s_keys[ROWS * COLS] = {
     KSP("Mnu","Mnu",HID_USAGE_NONE,KB_KEY_SPECIAL_MENU),
     KNONE, KNONE,
 
-    /* Row 1: number row + Bksp (cols 0-13) + nav cluster (14-16). */
-    K("`","~",HID_USAGE_GRAVE), K("1","!",HID_USAGE_1), K("2","@",HID_USAGE_2),
-    K("3","#",HID_USAGE_3), K("4","$",HID_USAGE_4), K("5","%",HID_USAGE_5),
-    K("6","^",HID_USAGE_6), K("7","&",HID_USAGE_7), K("8","*",HID_USAGE_8),
-    K("9","(",HID_USAGE_9), K("0",")",HID_USAGE_0), K("-","_",HID_USAGE_MINUS),
-    K("=","+",HID_USAGE_EQUAL),
+    /* Row 1: number row + Bksp (cols 0-13) + nav cluster (14-16).
+     * Shift glyphs are spoken via explicit narrator tokens (see
+     * KSH above) since the HID usage byte doesn't change under
+     * Shift for these keys. */
+    KSH("`","~",HID_USAGE_GRAVE,"tilde"), KSH("1","!",HID_USAGE_1,"exclamation"),
+    KSH("2","@",HID_USAGE_2,"at"),
+    KSH("3","#",HID_USAGE_3,"hash"), KSH("4","$",HID_USAGE_4,"dollar"),
+    KSH("5","%",HID_USAGE_5,"percent"),
+    KSH("6","^",HID_USAGE_6,"caret"), KSH("7","&",HID_USAGE_7,"ampersand"),
+    KSH("8","*",HID_USAGE_8,"asterisk"),
+    KSH("9","(",HID_USAGE_9,"lparen"), KSH("0",")",HID_USAGE_0,"rparen"),
+    KSH("-","_",HID_USAGE_MINUS,"underscore"),
+    KSH("=","+",HID_USAGE_EQUAL,"plus"),
     KSP("Bksp","Bksp",HID_USAGE_BACKSPACE,KB_KEY_SPECIAL_BACKSPACE),
     KSP("Ins", "Ins", HID_USAGE_INSERT,KB_KEY_SPECIAL_NAV),
     KSP("Hom","Hom",HID_USAGE_HOME,  KB_KEY_SPECIAL_NAV),

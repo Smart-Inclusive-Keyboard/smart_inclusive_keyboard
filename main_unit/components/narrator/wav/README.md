@@ -36,6 +36,28 @@ Every cell of the on-screen US layout has a matching clip
 except the "Win" / "Cmd" modifier (no upstream recording);
 that key narrates as silence.
 
+### Shifted number-row symbols
+
+The number row's Shift glyphs (`~ ! @ # $ % ^ & * ( ) _ +`) are
+not separate HID usages -- Shift+1 still sends
+`HID_USAGE_1`, only the host-side glyph changes -- so the
+narrator can't derive their spoken name from the HID usage
+alone. `layout_us.c` names an explicit narrator clip token per
+key (see the `KSH` macro) for the following language-neutral
+clips, spoken in place of the unshifted digit / mark while
+Shift is held:
+
+```
+tilde.wav, exclamation.wav, at.wav, hash.wav, dollar.wav,
+percent.wav, caret.wav, ampersand.wav, asterisk.wav,
+lparen.wav, rparen.wav, underscore.wav, plus.wav
+```
+
+These were synthesized with `espeak-ng` (`espeak-ng -v en-us -s
+150 -w <name>.wav "<word>"`) at the same PCM16/22050Hz mono
+format as the rest of the pack; replace with recordings from the
+upstream pack if/when it adds them.
+
 ## Format
 
 Standard RIFF/WAVE, **PCM 16-bit mono, 22050 Hz**. The I2S

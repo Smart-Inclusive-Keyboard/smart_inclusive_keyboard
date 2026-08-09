@@ -82,6 +82,14 @@ WAV_SYMS(capslock)
 WAV_SYMS(apostrophe) WAV_SYMS(backslash) WAV_SYMS(backtick)
 WAV_SYMS(comma) WAV_SYMS(equals) WAV_SYMS(lbracket) WAV_SYMS(minus)
 WAV_SYMS(period) WAV_SYMS(rbracket) WAV_SYMS(semicolon) WAV_SYMS(slash)
+/* Shifted glyphs of the number row (Shift+`1234567890-=`). These
+ * are language-neutral ASCII punctuation, spoken so the shifted
+ * key narrates the symbol actually sent to the host rather than
+ * the unshifted digit / glyph drawn underneath. */
+WAV_SYMS(tilde) WAV_SYMS(exclamation) WAV_SYMS(at) WAV_SYMS(hash)
+WAV_SYMS(dollar) WAV_SYMS(percent) WAV_SYMS(caret) WAV_SYMS(ampersand)
+WAV_SYMS(asterisk) WAV_SYMS(lparen) WAV_SYMS(rparen)
+WAV_SYMS(underscore) WAV_SYMS(plus)
 WAV_SYMS(f1) WAV_SYMS(f2) WAV_SYMS(f3)  WAV_SYMS(f4)  WAV_SYMS(f5)  WAV_SYMS(f6)
 WAV_SYMS(f7) WAV_SYMS(f8) WAV_SYMS(f9)  WAV_SYMS(f10) WAV_SYMS(f11) WAV_SYMS(f12)
 WAV_SYMS(insert) WAV_SYMS(home)   WAV_SYMS(pageup)
@@ -186,8 +194,9 @@ static const mod_clip_t S_MOD_CLIPS[] = {
 /* Filename-token -> clip table. Lets a layout name an exact
  * narrator clip per key (sound_unshifted / sound_shifted) so the
  * spoken name matches the character the host receives rather than
- * the ASCII transliteration drawn on screen. Currently populated
- * with the Ukrainian (ua_*) clip set. */
+ * the ASCII transliteration drawn on screen. Populated with the
+ * language-neutral shifted-symbol clip set (used by e.g. the US
+ * layout's number row) and the Ukrainian (ua_*) clip set. */
 typedef struct {
     const char *token;
     const uint8_t *start;
@@ -195,6 +204,26 @@ typedef struct {
 } token_clip_t;
 
 #define TOK(name) { #name, _binary_##name##_wav_start, _binary_##name##_wav_end }
+
+/* Language-neutral shifted symbols, always embedded (mirrors the
+ * language-neutral clips in S_CLIPS above). Named after their
+ * spoken word rather than the glyph itself so the token stays
+ * ASCII-only, matching the WAV filenames under wav/. */
+static const token_clip_t S_SYMBOL_TOKEN_CLIPS[] = {
+    TOK(tilde),
+    TOK(exclamation),
+    TOK(at),
+    TOK(hash),
+    TOK(dollar),
+    TOK(percent),
+    TOK(caret),
+    TOK(ampersand),
+    TOK(asterisk),
+    TOK(lparen),
+    TOK(rparen),
+    TOK(underscore),
+    TOK(plus),
+};
 
 #if CONFIG_SK_LANG_ENABLE_UA
 static const token_clip_t S_TOKEN_CLIPS[] = {
@@ -289,6 +318,13 @@ void narrator_speak_hid(unsigned hid_usage)
 void narrator_speak_token(const char *token)
 {
     if (!token || !*token) return;
+    for (size_t i = 0; i < sizeof(S_SYMBOL_TOKEN_CLIPS) / sizeof(S_SYMBOL_TOKEN_CLIPS[0]); ++i) {
+        if (strcmp(S_SYMBOL_TOKEN_CLIPS[i].token, token) == 0) {
+            audio_play_wav(S_SYMBOL_TOKEN_CLIPS[i].start,
+                           (size_t)(S_SYMBOL_TOKEN_CLIPS[i].end - S_SYMBOL_TOKEN_CLIPS[i].start));
+            return;
+        }
+    }
 #if CONFIG_SK_LANG_ENABLE_UA
     for (size_t i = 0; i < sizeof(S_TOKEN_CLIPS) / sizeof(S_TOKEN_CLIPS[0]); ++i) {
         if (strcmp(S_TOKEN_CLIPS[i].token, token) == 0) {
