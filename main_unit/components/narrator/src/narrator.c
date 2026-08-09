@@ -315,24 +315,27 @@ void narrator_speak_hid(unsigned hid_usage)
     audio_play_wav(c->start, (size_t)(c->end - c->start));
 }
 
+static bool play_token_clip(const token_clip_t *clips, size_t count, const char *token)
+{
+    for (size_t i = 0; i < count; ++i) {
+        if (strcmp(clips[i].token, token) == 0) {
+            audio_play_wav(clips[i].start, (size_t)(clips[i].end - clips[i].start));
+            return true;
+        }
+    }
+    return false;
+}
+
 void narrator_speak_token(const char *token)
 {
     if (!token || !*token) return;
-    for (size_t i = 0; i < sizeof(S_SYMBOL_TOKEN_CLIPS) / sizeof(S_SYMBOL_TOKEN_CLIPS[0]); ++i) {
-        if (strcmp(S_SYMBOL_TOKEN_CLIPS[i].token, token) == 0) {
-            audio_play_wav(S_SYMBOL_TOKEN_CLIPS[i].start,
-                           (size_t)(S_SYMBOL_TOKEN_CLIPS[i].end - S_SYMBOL_TOKEN_CLIPS[i].start));
-            return;
-        }
+    if (play_token_clip(S_SYMBOL_TOKEN_CLIPS,
+                         sizeof(S_SYMBOL_TOKEN_CLIPS) / sizeof(S_SYMBOL_TOKEN_CLIPS[0]),
+                         token)) {
+        return;
     }
 #if CONFIG_SK_LANG_ENABLE_UA
-    for (size_t i = 0; i < sizeof(S_TOKEN_CLIPS) / sizeof(S_TOKEN_CLIPS[0]); ++i) {
-        if (strcmp(S_TOKEN_CLIPS[i].token, token) == 0) {
-            audio_play_wav(S_TOKEN_CLIPS[i].start,
-                           (size_t)(S_TOKEN_CLIPS[i].end - S_TOKEN_CLIPS[i].start));
-            return;
-        }
-    }
+    play_token_clip(S_TOKEN_CLIPS, sizeof(S_TOKEN_CLIPS) / sizeof(S_TOKEN_CLIPS[0]), token);
 #endif
 }
 
