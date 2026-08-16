@@ -166,11 +166,20 @@ replaced by the menu and the gamepad routes here: Up/Down move the
 selection, Left/Right change the highlighted value, and the action
 button (`GP_BTN_0`) activates it. The menu lets the user pick the
 colour theme, set the **mouse pointer speed** (7 levels, slow to
-fast) and toggle which of the *available* (Kconfig-activated)
-languages take part in the Lng rotation. Languages not activated in
-Kconfig are not listed. At least one language is always enabled and
-the active language can never be disabled. Theme and mouse-speed
+fast), toggle **navigation rollover** and toggle which of the
+*available* (Kconfig-activated) languages take part in the Lng
+rotation. Languages not activated in Kconfig are not listed. At
+least one language is always enabled and the active language can
+never be disabled. Theme, mouse-speed and navigation-rollover
 choices persist to NVS; the language selection does not.
+
+Navigation rollover (`Nav rollover: ON/off`, default **off**)
+controls what happens when the selection cursor is moved past the
+edge of the on-screen key grid. When disabled (the default), the
+cursor clamps at the edge row/column. When enabled, moving past an
+edge wraps the selection around to the opposite edge in that same
+axis (e.g. moving up from the top row selects the bottom row of the
+same column).
 
 ## Gamepad buttons
 

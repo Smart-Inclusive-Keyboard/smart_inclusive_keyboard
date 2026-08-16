@@ -58,6 +58,7 @@ typedef struct {
     keyboard_ui_mode_t mode;
     int      menu_sel;      /* selected row in the settings menu */
     int      mouse_speed;   /* 0..KB_MOUSE_SPEED_LEVELS-1        */
+    bool     nav_rollover;  /* wrap selection at the grid edges  */
     char     hid_status[32];
 } ui_state_t;
 
@@ -83,6 +84,7 @@ static void nvs_save_strings(void)
      * always boots with the first available layout. */
     nvs_set_str(h, "theme",  theme_active()->name);
     nvs_set_u8(h, "mousespd", (uint8_t)s_st.mouse_speed);
+    nvs_set_u8(h, "navroll", (uint8_t)(s_st.nav_rollover ? 1 : 0));
 #if CONFIG_BOARD_HAS_SPEAKER
     nvs_set_u8(h, "soundvol", (uint8_t)audio_get_volume());
 #endif
@@ -102,6 +104,10 @@ static void nvs_load_strings(void)
     uint8_t spd;
     if (nvs_get_u8(h, "mousespd", &spd) == ESP_OK && spd < KB_MOUSE_SPEED_LEVELS) {
         s_st.mouse_speed = spd;
+    }
+    uint8_t roll;
+    if (nvs_get_u8(h, "navroll", &roll) == ESP_OK) {
+        s_st.nav_rollover = (roll != 0);
     }
 #if CONFIG_BOARD_HAS_SPEAKER
     uint8_t vol;
@@ -544,15 +550,17 @@ static void draw_mouse_overlay(const theme_t *th)
  *   0            Theme           (left/right cycles the palette)
  *   1            Mouse speed     (left/right changes the speed)
  *   2            Sound volume    (left/right changes the volume)
- *   2..n_lang+1  Lang <NAME>     (left/right/action toggles enable)
- *   n_lang+2     Close
+ *   3            Nav rollover    (left/right/action toggles on/off)
+ *   4..n_lang+3  Lang <NAME>     (left/right/action toggles enable)
+ *   n_lang+4     Close
  */
 
 /* Fixed (non-language) rows that precede the language list. */
-#define MENU_ROW_THEME       0
-#define MENU_ROW_MOUSE_SPEED 1
-#define MENU_ROW_SOUND_VOL   2
-#define MENU_FIXED_ROWS      3
+#define MENU_ROW_THEME        0
+#define MENU_ROW_MOUSE_SPEED  1
+#define MENU_ROW_SOUND_VOL    2
+#define MENU_ROW_NAV_ROLLOVER 3
+#define MENU_FIXED_ROWS       4
 
 static int menu_lang_count(void)
 {
@@ -600,6 +608,8 @@ static void menu_item_text(int idx, char *out, size_t n)
         vol = audio_get_volume();
 #endif
         snprintf(out, n, "Sound volume: %d%%", vol);
+    } else if (idx == MENU_ROW_NAV_ROLLOVER) {
+        snprintf(out, n, "Nav rollover: %s", s_st.nav_rollover ? "ON" : "off");
     } else if (idx >= MENU_FIXED_ROWS && idx < MENU_FIXED_ROWS + nl) {
         int li = menu_lang_layout_index(idx - MENU_FIXED_ROWS);
         const kb_layout_t *l = kb_layout_by_index(li);
@@ -758,10 +768,15 @@ bool keyboard_ui_move(int drow, int dcol)
     const kb_layout_t *l = kb_layout_active();
     int nr = s_st.sel_row + drow;
     int nc = s_st.sel_col + dcol;
-    if (nr < 0) nr = 0;
-    if (nr >= l->rows) nr = l->rows - 1;
-    if (nc < 0) nc = 0;
-    if (nc >= l->cols) nc = l->cols - 1;
+    if (s_st.nav_rollover) {
+        nr = ((nr % l->rows) + l->rows) % l->rows;
+        nc = ((nc % l->cols) + l->cols) % l->cols;
+    } else {
+        if (nr < 0) nr = 0;
+        if (nr >= l->rows) nr = l->rows - 1;
+        if (nc < 0) nc = 0;
+        if (nc >= l->cols) nc = l->cols - 1;
+    }
     if (nr == s_st.sel_row && nc == s_st.sel_col) return false;
     s_st.sel_row = nr;
     s_st.sel_col = nc;
@@ -1021,6 +1036,11 @@ void keyboard_ui_menu_adjust(int delta)
         mouse_speed_adjust(delta ? delta : 1);  /* persists + redraws */
     } else if (idx == MENU_ROW_SOUND_VOL) {
         sound_volume_adjust(delta);
+    } else if (idx == MENU_ROW_NAV_ROLLOVER) {
+        (void)delta;
+        s_st.nav_rollover = !s_st.nav_rollover;
+        nvs_save_strings();
+        keyboard_ui_request_redraw();
     } else if (idx >= MENU_FIXED_ROWS && idx < MENU_FIXED_ROWS + nl) {
         int li = menu_lang_layout_index(idx - MENU_FIXED_ROWS);
         if (li < 0) return;
