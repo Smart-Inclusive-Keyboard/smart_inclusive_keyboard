@@ -1,5 +1,7 @@
 # Smart Inclusive Keyboard
 
+![Frontal view](Images/img06.jpg)
+
 This project implements a specialized keyboard for users with limited
 hand function, such as those suffering from cerebral palsy.
 
@@ -33,7 +35,7 @@ functions.
 
 See also:
 
-1. [Bill of material](BOM.md)
+1. [Bill of materials](BOM.md)
 
 2. [Photos](Images/)
 

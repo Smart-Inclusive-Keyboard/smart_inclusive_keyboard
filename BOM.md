@@ -2,15 +2,15 @@
 
 Electronic components:
 
-1. 1 pc. [Freenove FNK0104A
+1. 1pc [Freenove FNK0104A
 board](https://docs.freenove.com/projects/fnk0104/en/latest/fnk0104/codes/MAIN/Freenove_ESP32S3_Display.html)
 (2.8" LCD, no touch, with speaker)
 
-2. 1 pc. [Waveshare ESP32-C6-Touch-LCD-1.47](https://docs.waveshare.com/ESP32-C6-Touch-LCD-1.47)
+2. 1pc [Waveshare ESP32-C6-Touch-LCD-1.47](https://docs.waveshare.com/ESP32-C6-Touch-LCD-1.47)
 
-3. 1 pc. [ESP32-C3 Super Mini](https://www.espboards.dev/esp32/esp32-c3-super-mini/)
+3. 1pc [ESP32-C3 Super Mini](https://www.espboards.dev/esp32/esp32-c3-super-mini/)
 
-4. 1 pc. [Vibration Motor
+4. 1pc [Vibration Motor
 Module](https://easyelecmodule.com/vibration-motor-module/)
 
 Assembly:
