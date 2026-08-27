@@ -1,7 +1,7 @@
 # Smart Inclusive Keyboard
 
 This project implements a specialized keyboard for users with limited
-hand function, such as those sfuufering from cerebral palsy.
+hand function, such as those suffering from cerebral palsy.
 
 Theh keyboard consists of 3 ESP32 units connected together:
 
@@ -30,6 +30,15 @@ this build) is used for connecting the 7 buttons, as the touch input
 device does not have enough free GPIO pins. It uses the same source
 code as the touch controller, only without the display and touch
 functions.
+
+See also:
+
+1. [Bill of material](BOM.md)
+
+2. [Photos](Images/)
+
+3. [Demo videos about the project
+development](https://www.youtube.com/playlist?list=PLbRMZQ9npKJRurm1_IdCB4-oDc54Ccasw)
 
 
 ## Use of LLM
