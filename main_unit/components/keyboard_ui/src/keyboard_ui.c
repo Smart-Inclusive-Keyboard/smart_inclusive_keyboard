@@ -29,6 +29,7 @@
 #include <string.h>
 
 #include <esp_log.h>
+#include <esp_timer.h>
 #include <nvs.h>
 #include <nvs_flash.h>
 #include <freertos/FreeRTOS.h>
@@ -48,6 +49,11 @@ static const char *TAG = "kb_ui";
 #define STATUS_BAR_H 14
 #define NVS_NAMESPACE "sk_ui"
 
+/* Two Win-key toggles within this window send a standalone Win
+ * key-down/key-up HID report, mimicking a physical keyboard's
+ * "tap Win to open the Start menu" gesture. */
+#define WIN_DOUBLE_TAP_MS 500
+
 typedef struct {
     int  sel_row;
     int  sel_col;
@@ -59,6 +65,7 @@ typedef struct {
     int      menu_sel;      /* selected row in the settings menu */
     int      mouse_speed;   /* 0..KB_MOUSE_SPEED_LEVELS-1        */
     bool     nav_rollover;  /* wrap selection at the grid edges  */
+    uint32_t win_last_press_ms; /* for Win-key double-tap detection */
     char     hid_status[32];
 } ui_state_t;
 
@@ -137,6 +144,7 @@ static void draw_status_bar(const theme_t *th)
         { "Ct", HID_MOD_LCTRL  },
         { "Al", HID_MOD_LALT   },
         { "AG", HID_MOD_RALT   },
+        { "Wn", HID_MOD_LGUI   },
     };
     for (size_t i = 0; i < sizeof(mods) / sizeof(mods[0]); ++i) {
         bool on = (s_st.mod_sticky | s_st.mod_oneshot) & mods[i].m;
@@ -839,6 +847,16 @@ void keyboard_ui_press_current(void)
      * until the next character". */
     uint8_t mb = key_mod_bit(k);
     if (mb) {
+        if (mb == HID_MOD_LGUI) {
+            uint32_t now = (uint32_t)(esp_timer_get_time() / 1000);
+            if (now - s_st.win_last_press_ms <= WIN_DOUBLE_TAP_MS) {
+                hid_send_key(HID_MOD_LGUI, HID_USAGE_NONE);
+                hid_release_all();
+                s_st.win_last_press_ms = 0;
+            } else {
+                s_st.win_last_press_ms = now;
+            }
+        }
         s_st.mod_sticky ^= mb;
         keyboard_ui_request_redraw();
         return;
